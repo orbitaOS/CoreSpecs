@@ -1,0 +1,258 @@
+<html>
+<head>
+<title>CoreSpecs v2.8</title>
+
+<hta:application
+applicationname="CoreSpecs"
+icon="CoreSpecsIcon.ico"
+border="thin"
+caption="yes"
+showintaskbar="yes"
+singleinstance="yes"
+scroll="no"
+/>
+
+<script language="JScript">
+var showChangelog = false;
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var base = fso.GetParentFolderName(location.pathname);
+
+document.write('<link rel="stylesheet" href="' + base + '\\style.css">');
+
+function wmi(q) {
+return GetObject("winmgmts:").ExecQuery(q);
+}
+
+function pad(s,n){
+s = String(s);
+while (s.length < n) s += " ";
+return s;
+}
+
+function GetWindowsVersion(){
+var e = new Enumerator(wmi("Select Version from Win32_OperatingSystem"));
+return e.atEnd() ? "0" : e.item().Version;
+}
+
+function GetWindowsLogo(){
+var os = GetOS();
+if (os.indexOf("11") !== -1) return base + "\\11.png";
+if (os.indexOf("10") !== -1 || os.indexOf("8") !== -1) return base + "\\10.png";
+if (os.indexOf("7") !== -1) return base + "\\7.png";
+return base + "\\10.png";
+}
+
+function GetPCName() {
+var e = new Enumerator(wmi("Select Name from Win32_ComputerSystem"));
+return e.atEnd() ? "PC name not found!" : e.item().Name;
+}
+
+function GetOS() {
+var e = new Enumerator(wmi("Select Caption from Win32_OperatingSystem"));
+return e.atEnd() ? "OS not found!" : e.item().Caption;
+}
+
+function GetWindowsArch() {
+var e = new Enumerator(wmi("Select OSArchitecture from Win32_OperatingSystem"));
+return e.atEnd() ? "Architecture not found!" : e.item().OSArchitecture;
+}
+
+function GetCPU() {
+var e = new Enumerator(wmi("Select Name from Win32_Processor"));
+return e.atEnd() ? "CPU not found!" : e.item().Name;
+}
+
+function GetGPU() {
+var e = new Enumerator(wmi("Select Name from Win32_VideoController"));
+return e.atEnd() ? "GPU not found!" : e.item().Name;
+}
+
+function GetDriver() {
+var e = new Enumerator(wmi("Select DriverVersion from Win32_VideoController"));
+return e.atEnd() ? "Driver not found!" : e.item().DriverVersion;
+}
+
+function GetRAM() {
+var e = new Enumerator(wmi("Select TotalVisibleMemorySize from Win32_OperatingSystem"));
+return e.atEnd() ? "RAM not found!" : Math.round(e.item().TotalVisibleMemorySize / 1024) + " MB";
+}
+
+function GetDiskC() {
+var e = new Enumerator(wmi("Select Size,FreeSpace from Win32_LogicalDisk where DeviceID='C:'"));
+if (e.atEnd()) return "Disk C not found!";
+var x = e.item();
+return Math.floor((x.Size-x.FreeSpace)/1024/1024/1024) +
+" / " +
+Math.floor(x.Size/1024/1024/1024) + " GB";
+}
+
+function GetBattery() {
+var e = new Enumerator(wmi("Select EstimatedChargeRemaining from Win32_Battery"));
+return e.atEnd() ? "Battery not found!" : e.item().EstimatedChargeRemaining + "%";
+}
+
+function GetInternet() {
+var e = new Enumerator(
+wmi("Select Description,IPAddress from Win32_NetworkAdapterConfiguration where IPEnabled=True")
+);
+
+if (e.atEnd()) return "Internet not found!";
+
+var x = e.item();
+if (!x.IPAddress || x.IPAddress.length === 0) return x.Description;
+
+for (var i = 0; i < x.IPAddress.length; i++) {
+if (x.IPAddress[i].indexOf(".") !== -1) {
+return x.Description + " | " + x.IPAddress[i];
+}
+}
+
+return x.Description + " | " + x.IPAddress[0];
+}
+
+function GetUptime(){
+try {
+var e = new Enumerator(wmi("Select LastBootUpTime from Win32_OperatingSystem"));
+var s = e.item().LastBootUpTime;
+var b = new Date(
+s.substr(0,4),s.substr(4,2)-1,s.substr(6,2),
+s.substr(8,2),s.substr(10,2),s.substr(12,2)
+);
+var sec = Math.floor((new Date()-b)/1000);
+var d = Math.floor(sec/86400); sec%=86400;
+var h = Math.floor(sec/3600); sec%=3600;
+var m = Math.floor(sec/60);
+return d+"d "+h+"h "+m+"m";
+} catch(e){ return "Uptime not found!"; }
+}
+
+function GetBIOS() {
+var e = new Enumerator(wmi("Select SMBIOSBIOSVersion from Win32_BIOS"));
+return e.atEnd() ? "BIOS/UEFI not found!" : e.item().SMBIOSBIOSVersion;
+}
+
+function GetUser(){
+var user;
+
+try{
+var net = new ActiveXObject("WScript.Network");
+user = net.UserName;
+}catch(e){
+return "User not found!";
+}
+
+try{
+var shell = new ActiveXObject("Shell.Application");
+if(shell.IsUserAnAdmin()){
+return user + " (Admin)";
+} else {
+return user + " (User)";
+}
+}catch(e){
+return user;
+}
+}
+
+function GetLanguage(){
+try{
+var sh = new ActiveXObject("WScript.Shell");
+return sh.RegRead("HKCU\\Control Panel\\International\\LocaleName");
+}catch(e){
+return "Language not found!";
+}
+}
+
+function GetResolution(){
+return screen.width + "x" + screen.height;
+}
+
+function LoadChangelog(){
+var info = document.getElementById("info");
+info.className = "changelog";
+try {
+var f = fso.OpenTextFile(base + "\\changelog.txt", 1);
+info.innerText = f.ReadAll();
+f.Close();
+} catch(e){
+info.innerText = "changelog file not found!";
+}
+}
+
+function Update() {
+
+if (showChangelog) return;
+
+var info = document.getElementById("info");
+info.className = "";
+
+var lines = [];
+lines.push(pad("PC Name:",25)+GetPCName());
+lines.push(pad("OS:",25)+GetOS());
+lines.push(pad("Windows ver:",25)+GetWindowsVersion());
+lines.push(pad("Architecture:",25)+GetWindowsArch());
+lines.push(pad("CPU:",25)+GetCPU());
+lines.push(pad("GPU:",25)+GetGPU());
+lines.push(pad("GPU Driver:",25)+GetDriver());
+lines.push(pad("RAM:",25)+GetRAM());
+lines.push(pad("Disk C:",25)+GetDiskC());
+lines.push(pad("Battery:",25)+GetBattery());
+lines.push(pad("Internet adapter:",25)+GetInternet());
+lines.push(pad("Uptime:",25)+GetUptime());
+lines.push(pad("BIOS/UEFI version:",25)+GetBIOS());
+lines.push(pad("User:",25)+GetUser());
+lines.push(pad("System language:",25)+GetLanguage());
+lines.push(pad("screen resolution:",25)+GetResolution());
+lines.push(pad("ESC-EXIT 1-OPEN CHANGELOG"));
+
+var out = "";
+info.innerText = "";
+
+for (var i = 0; i < lines.length; i++) {
+(function(i){
+setTimeout(function(){
+out += lines[i] + "\r\n";
+info.innerText = out;
+}, i * 120);
+})(i);
+}
+
+/* создание файла specs.txt */
+setTimeout(function(){
+try{
+var file = fso.CreateTextFile(base + "\\specs.txt", true);
+file.Write(out);
+file.Close();
+}catch(e){}
+}, lines.length * 120 + 200);
+
+}
+
+document.onkeydown = function () {
+if (event.keyCode == 49) {
+showChangelog = true;
+LoadChangelog();
+}
+if (event.keyCode == 27 && showChangelog) {
+showChangelog = false;
+Update();
+}
+};
+
+function Window_OnLoad() {
+window.resizeTo(1125, 635);
+document.getElementById("winlogo").src = GetWindowsLogo();
+Update();
+}
+</script>
+</head>
+
+<body onload="Window_OnLoad()">
+
+<img id="winlogo" style="position:absolute; top:10px; right:10px; width:64px; height:64px;">
+
+<div id="wrap">
+<pre id="info"></pre>
+</div>
+
+</body>
+</html>

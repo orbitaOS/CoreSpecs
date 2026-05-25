@@ -1,0 +1,34 @@
+v2.8
+- Added Windows logo display
+- Removed PC specs copying
+- PC specs output is now cleaner
+- Changelog scrolling is now available
+- CoreSpecs version is now shown in the application title
+- Interface styles have been moved to style.css
+- Text has been edited
+- Code structure simplified
+- Added PC name display
+- Added Windows version display
+- Added system architecture display
+- Window title now shows the application name instead of the file path
+
+v2.7
+- All files are now located in a single folder, speeding up file access
+- A new custom icon is used instead of the default one
+- RAM usage is now lower, making CoreSpecs comfortable to use even on very low-end PCs and laptops
+- Improved the appearance animation
+- The window size and proportions are now similar to the Windows Terminal window
+- Added version display in the top-left corner
+
+v2.6
+- CoreSpecs now uses a new technology to get internet data
+- Fixed a bug where PC specs were copied infinitely
+
+v2.5
+- Fixed some bugs
+- Added uptime
+- Added UEFI/BIOS version viewing
+
+v2.4
+- Added a README file with some (useless) info
+- Added changelog
